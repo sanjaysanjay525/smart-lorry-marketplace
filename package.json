@@ -1,0 +1,31 @@
+{
+  "name": "smart-lorry-marketplace",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Smart Lorry Marketplace monorepo — rental, return-trip matching, and shared cargo pooling for commercial vehicles.",
+  "workspaces": [
+    "apps/*",
+    "services/api",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace=services/api",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "build:shared": "npm run build --workspace=packages/shared",
+    "build:api": "npm run build --workspace=services/api",
+    "build:web": "npm run build --workspace=apps/web",
+    "build": "npm run build:shared && npm run build:api && npm run build:web",
+    "test:api": "npm run test --workspace=services/api",
+    "lint": "npm run lint --workspace=services/api && npm run lint --workspace=apps/web",
+    "prisma:generate": "npm run prisma:generate --workspace=services/api",
+    "prisma:migrate": "npm run prisma:migrate --workspace=services/api",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

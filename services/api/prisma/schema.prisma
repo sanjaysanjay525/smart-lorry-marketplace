@@ -1,0 +1,151 @@
+// Smart Lorry Marketplace — Prisma schema
+// Phase 1: auth, roles, vehicle/driver CRUD.
+// PostGIS geography columns are declared with Unsupported(...) because Prisma's
+// query engine doesn't model PostGIS types natively. Reads/writes against
+// `current_location` go through raw SQL helpers in src/utils/geo.ts using
+// ST_MakePoint / ST_AsGeoJSON, while every other vehicle field uses the
+// normal Prisma client.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [postgis]
+}
+
+enum UserRole {
+  customer
+  owner
+  driver
+  admin
+
+  @@map("user_role")
+}
+
+enum VehicleType {
+  mini_truck
+  pickup
+  lcv
+  truck_14ft
+  truck_19ft
+  trailer
+  container
+
+  @@map("vehicle_type")
+}
+
+enum VehicleStatus {
+  available
+  busy
+  offline
+
+  @@map("vehicle_status")
+}
+
+enum KycStatus {
+  pending
+  approved
+  rejected
+
+  @@map("kyc_status")
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  phone        String   @unique
+  passwordHash String   @map("password_hash")
+  role         UserRole
+  name         String
+  avatarUrl    String?  @map("avatar_url")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  refreshTokens   RefreshToken[]
+  vehiclesOwned   Vehicle[]      @relation("OwnerVehicles")
+  driverProfile   Driver?        @relation("UserDriverProfile")
+  driversManaged  Driver[]       @relation("OwnerDrivers")
+
+  @@index([role])
+  @@map("users")
+}
+
+// Refresh tokens are stored hashed and rotated on use so a stolen token
+// can be revoked without invalidating every session for a user.
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  tokenHash String   @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Vehicle {
+  id              String        @id @default(uuid()) @db.Uuid
+  ownerId         String        @map("owner_id") @db.Uuid
+  type            VehicleType
+  capacityKg      Decimal       @map("capacity_kg") @db.Decimal(10, 2)
+  registration    String        @unique
+  status          VehicleStatus @default(offline)
+  baseRatePerKm   Decimal       @map("base_rate_per_km") @db.Decimal(10, 2)
+  baseRatePerHour Decimal       @map("base_rate_per_hour") @db.Decimal(10, 2)
+
+  // GEOGRAPHY(POINT, 4326) — see geo.ts for raw-SQL read/write helpers.
+  currentLocation Unsupported("geography(Point,4326)")? @map("current_location")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  owner  User     @relation("OwnerVehicles", fields: [ownerId], references: [id], onDelete: Cascade)
+  driver Driver?
+
+  @@index([ownerId])
+  @@index([status])
+  @@map("vehicles")
+}
+
+model Driver {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String    @unique @map("user_id") @db.Uuid
+  ownerId         String    @map("owner_id") @db.Uuid
+  vehicleId       String?   @unique @map("vehicle_id") @db.Uuid
+  licenseNumber   String    @map("license_number")
+  licenseExpiry   DateTime  @map("license_expiry") @db.Date
+  yearsExperience Int       @default(0) @map("years_experience")
+  kycStatus       KycStatus @default(pending) @map("kyc_status")
+  ratingAvg       Decimal   @default(0) @map("rating_avg") @db.Decimal(3, 2)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user         User                @relation("UserDriverProfile", fields: [userId], references: [id], onDelete: Cascade)
+  owner        User                @relation("OwnerDrivers", fields: [ownerId], references: [id], onDelete: Cascade)
+  vehicle      Vehicle?            @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  availability DriverAvailability[]
+
+  @@index([ownerId])
+  @@index([kycStatus])
+  @@map("drivers")
+}
+
+model DriverAvailability {
+  id        String   @id @default(uuid()) @db.Uuid
+  driverId  String   @map("driver_id") @db.Uuid
+  dayOfWeek Int      @map("day_of_week") // 0 = Sunday .. 6 = Saturday
+  startTime String   @map("start_time") // "HH:mm", stored as text to keep timezone handling explicit in app code
+  endTime   String   @map("end_time")
+
+  driver Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@unique([driverId, dayOfWeek, startTime])
+  @@map("driver_availability")
+}

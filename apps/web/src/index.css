@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+  body {
+    @apply bg-paper text-ink font-body antialiased;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display;
+  }
+  /* Keyboard focus must stay visible everywhere — never suppress outlines. */
+  :focus-visible {
+    outline: 2px solid theme("colors.marigold.DEFAULT");
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  .ticket-perforation {
+    background-image: radial-gradient(circle, #f6f2e7 2.5px, transparent 2.6px);
+    background-size: 10px 14px;
+    background-position: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,71 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: slm-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: slm
+      POSTGRES_PASSWORD: slm_dev_password
+      POSTGRES_DB: smart_lorry_marketplace
+    ports:
+      - "5432:5432"
+    volumes:
+      - slm_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U slm -d smart_lorry_marketplace"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: slm-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    container_name: slm-api
+    restart: unless-stopped
+    env_file:
+      - services/api/.env
+    environment:
+      DATABASE_URL: postgresql://slm:slm_dev_password@postgres:5432/smart_lorry_marketplace?schema=public
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./services/api:/app/services/api
+      - ./packages/shared:/app/packages/shared
+      - /app/services/api/node_modules
+
+  ai-matching:
+    build:
+      context: .
+      dockerfile: services/ai-matching/Dockerfile
+    container_name: slm-ai-matching
+    restart: unless-stopped
+    env_file:
+      - services/ai-matching/.env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./services/ai-matching:/app
+
+volumes:
+  slm_postgres_data:
