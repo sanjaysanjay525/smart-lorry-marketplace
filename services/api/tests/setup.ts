@@ -15,9 +15,13 @@ import { prisma } from "../src/config/prisma";
 // slate without paying for a full migrate reset each time.
 export async function resetDatabase() {
   await prisma.$transaction([
+    prisma.dispute.deleteMany(),
+    prisma.kycDocument.deleteMany(),
+    prisma.smsSendLog.deleteMany(),
+    prisma.rating.deleteMany(),
+    prisma.trip.deleteMany(),
+    prisma.load.deleteMany(),
     prisma.refreshToken.deleteMany(),
-    prisma.driverAvailability.deleteMany(),
-    prisma.driver.deleteMany(),
     prisma.vehicle.deleteMany(),
     prisma.user.deleteMany(),
   ]);

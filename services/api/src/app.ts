@@ -11,7 +11,9 @@ import { env } from "./config/env";
 import { authRouter } from "./routes/auth.routes";
 import { usersRouter } from "./routes/users.routes";
 import { vehiclesRouter } from "./routes/vehicles.routes";
-import { driversRouter } from "./routes/driver.routes";
+import { loadRouter } from "./routes/load.routes";
+import { tripRouter } from "./routes/trip.routes";
+import { adminRouter } from "./routes/admin.routes";
 import { notFoundHandler, errorHandler } from "./middleware/errorHandler";
 
 export function createApp() {
@@ -51,7 +53,7 @@ export function createApp() {
   const swaggerSpec = swaggerJsdoc({
     definition: {
       openapi: "3.0.0",
-      info: { title: "Smart Lorry Marketplace API", version: "0.1.0" },
+      info: { title: "Smart Lorry Marketplace API", version: "2.0.0" },
       servers: [{ url: "/api/v1" }],
     },
     apis: ["./src/routes/*.ts"],
@@ -61,7 +63,9 @@ export function createApp() {
   app.use("/api/v1/auth", authLimiter, authRouter);
   app.use("/api/v1/users", usersRouter);
   app.use("/api/v1/vehicles", vehiclesRouter);
-  app.use("/api/v1/drivers", driversRouter);
+  app.use("/api/v1/loads", loadRouter);
+  app.use("/api/v1/trips", tripRouter);
+  app.use("/api/v1/admin", adminRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

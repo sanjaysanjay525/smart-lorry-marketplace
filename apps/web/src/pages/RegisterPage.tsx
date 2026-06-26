@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Package, Truck, Car } from "lucide-react";
+import { Package, Truck } from "lucide-react";
 import { AuthLayout } from "../components/AuthLayout";
 import { TextField } from "../components/FormField";
 import { Button } from "../components/Button";
@@ -11,9 +11,8 @@ import type { UserRole } from "@smart-lorry/shared";
 type RegisterableRole = Exclude<UserRole, "admin">;
 
 const ROLE_OPTIONS: { value: RegisterableRole; label: string; description: string; icon: typeof Truck }[] = [
-  { value: "customer", label: "Customer", description: "Book lorries for my cargo", icon: Package },
-  { value: "owner", label: "Fleet owner", description: "List my vehicles & drivers", icon: Truck },
-  { value: "driver", label: "Driver", description: "Drive trips for an owner", icon: Car },
+  { value: "mill",  label: "Mill Owner",  description: "Post loads & book lorries", icon: Package },
+  { value: "owner", label: "Lorry Owner", description: "Register lorries & accept loads", icon: Truck },
 ];
 
 export function RegisterPage() {
@@ -33,7 +32,7 @@ export function RegisterPage() {
     setIsSubmitting(true);
     try {
       await register({ role, name, email, phone, password });
-      navigate("/dashboard/vehicles");
+      navigate(role === "mill" ? "/dashboard/mill" : "/dashboard/owner");
     } catch (err) {
       setError(extractErrorMessage(err));
     } finally {
@@ -42,9 +41,9 @@ export function RegisterPage() {
   }
 
   return (
-    <AuthLayout title="Create your account" subtitle="Tell us who you are — this shapes what you can do here.">
+    <AuthLayout title="Create your account" subtitle="Choose your role — this shapes your dashboard.">
       <form className="space-y-5" onSubmit={handleSubmit}>
-        <div role="radiogroup" aria-label="Account type" className="grid grid-cols-3 gap-2">
+        <div role="radiogroup" aria-label="Account type" className="grid grid-cols-2 gap-3">
           {ROLE_OPTIONS.map(({ value, label, description, icon: Icon }) => {
             const isSelected = role === value;
             return (
@@ -54,15 +53,15 @@ export function RegisterPage() {
                 role="radio"
                 aria-checked={isSelected}
                 onClick={() => setRole(value)}
-                className={`flex flex-col items-center gap-1.5 rounded-md border px-2 py-3 text-center transition-colors ${
+                className={`flex flex-col items-center gap-1.5 rounded-md border px-3 py-4 text-center transition-colors ${
                   isSelected
                     ? "border-night bg-night text-paper"
                     : "border-line bg-white text-ink hover:border-night/40"
                 }`}
               >
-                <Icon className={`h-5 w-5 ${isSelected ? "text-marigold" : "text-slate"}`} />
-                <span className="text-xs font-semibold">{label}</span>
-                <span className={`text-[10px] leading-tight ${isSelected ? "text-paper/70" : "text-slate"}`}>
+                <Icon className={`h-6 w-6 ${isSelected ? "text-marigold" : "text-slate"}`} />
+                <span className="text-sm font-semibold">{label}</span>
+                <span className={`text-[11px] leading-tight ${isSelected ? "text-paper/70" : "text-slate"}`}>
                   {description}
                 </span>
               </button>

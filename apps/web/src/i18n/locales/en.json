@@ -1,0 +1,108 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "loads": "Load Board",
+    "trips": "My Trips",
+    "fleet": "My Fleet",
+    "logout": "Logout",
+    "browse_lorries": "Browse Lorries",
+    "admin": "Admin Panel"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "email": "Email",
+    "phone": "Phone",
+    "password": "Password",
+    "name": "Full Name",
+    "role_mill": "Mill Owner",
+    "role_owner": "Lorry Owner"
+  },
+  "load": {
+    "post": "Post a Load",
+    "material": "Material Type",
+    "weight": "Weight (kg)",
+    "vehicle_type": "Vehicle Type Required",
+    "pickup": "Pickup Address",
+    "drop": "Drop Address",
+    "rate": "Offered Rate (₹)",
+    "available_from": "Available From",
+    "available_until": "Available Until",
+    "notes": "Notes (optional)",
+    "submit": "Post Load",
+    "board": "Load Board",
+    "no_loads": "No loads available right now.",
+    "status_open": "Open",
+    "status_booked": "Booked",
+    "status_in_transit": "In Transit",
+    "status_delivered": "Delivered",
+    "status_cancelled": "Cancelled",
+    "accept": "Accept Load",
+    "cancel": "Cancel Load",
+    "edit": "Edit Load"
+  },
+  "trip": {
+    "status_pending": "Pending",
+    "status_picked_up": "Picked Up",
+    "status_in_transit": "In Transit",
+    "status_delivered": "Delivered",
+    "status_cancelled": "Cancelled",
+    "pickup_action": "Mark Picked Up",
+    "transit_action": "Mark In Transit",
+    "deliver_action": "Mark Delivered",
+    "cancel_action": "Cancel Trip"
+  },
+  "vehicle": {
+    "add": "Add Lorry",
+    "type": "Vehicle Type",
+    "capacity": "Capacity (kg)",
+    "registration": "Registration Number",
+    "rate_per_trip": "Rate per Trip (₹)",
+    "rate_per_km": "Rate per KM (₹)",
+    "status_available": "Available",
+    "status_busy": "On Trip",
+    "status_offline": "Offline"
+  },
+  "tracking": {
+    "live": "Live Tracking",
+    "speed": "Speed",
+    "last_update": "Last update"
+  },
+  "payment": {
+    "pay_now": "Pay Now",
+    "amount": "Amount",
+    "status_pending": "Payment Pending",
+    "status_paid": "Paid",
+    "status_failed": "Failed",
+    "invoice": "GST Invoice"
+  },
+  "chat": {
+    "title": "Chat",
+    "placeholder": "Type a message...",
+    "send": "Send",
+    "no_messages": "No messages yet. Start the conversation."
+  },
+  "pod": {
+    "title": "Proof of Delivery",
+    "upload": "Upload Photo",
+    "signature": "Receiver Signature",
+    "submit": "Submit POD",
+    "view": "View POD",
+    "verified": "Delivery Verified"
+  },
+  "ai": {
+    "recommended": "AI Recommended",
+    "match_score": "Match Score",
+    "price_suggestion": "AI Price Suggestion",
+    "use_suggested": "Use Suggested Rate"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "success": "Success",
+    "confirm": "Confirm"
+  }
+}

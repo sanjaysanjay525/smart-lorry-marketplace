@@ -4,17 +4,15 @@ import { Plus, Truck } from "lucide-react";
 import { AppShell } from "../components/AppShell";
 import { VehicleTicket, STATUS_CYCLE } from "../components/VehicleTicket";
 import { VehicleFormModal } from "../components/VehicleFormModal";
-import { LinkDriverModal } from "../components/LinkDriverModal";
 import { Button } from "../components/Button";
 import { listVehicles, createVehicle, updateVehicle, updateVehicleStatus } from "../lib/vehicles";
-import { createDriver } from "../lib/drivers";
-import type { VehicleDTO, CreateVehicleInput, CreateDriverInput } from "@smart-lorry/shared";
+import { formatCurrency } from "../lib/labels";
+import type { VehicleDTO, CreateVehicleInput } from "@smart-lorry/shared";
 
 export function FleetPage() {
   const queryClient = useQueryClient();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<VehicleDTO | null>(null);
-  const [assigningVehicle, setAssigningVehicle] = useState<VehicleDTO | null>(null);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["vehicles"],
@@ -36,22 +34,16 @@ export function FleetPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["vehicles"] }),
   });
 
-  const linkDriverMutation = useMutation({
-    mutationFn: (input: CreateDriverInput) => createDriver(input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["vehicles"] }),
-  });
-
   const vehicles = data?.data ?? [];
-  const unassignedVehicles = vehicles.filter((v) => !v.driver);
 
   return (
     <AppShell>
       <div className="mx-auto max-w-4xl px-8 py-10">
         <div className="mb-8 flex items-start justify-between">
           <div>
-            <h1 className="text-3xl font-semibold text-ink">Fleet</h1>
+            <h1 className="text-3xl font-semibold text-ink">My Fleet</h1>
             <p className="mt-1 text-sm text-slate">
-              {data ? `${data.total} vehicle${data.total === 1 ? "" : "s"} on the books` : "Your vehicles, at a glance"}
+              {data ? `${data.total} vehicle${data.total === 1 ? "" : "s"} registered` : "Your lorries, at a glance"}
             </p>
           </div>
           <Button onClick={() => setIsAddOpen(true)}>
@@ -70,7 +62,7 @@ export function FleetPage() {
           <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-line py-16 text-center">
             <Truck className="h-8 w-8 text-slate" />
             <p className="text-sm text-slate">
-              No vehicles yet. Add your first one to start taking bookings.
+              No vehicles yet. Add your first one to start accepting loads.
             </p>
             <Button onClick={() => setIsAddOpen(true)} size="sm">
               <Plus className="h-4 w-4" /> Add vehicle
@@ -84,7 +76,6 @@ export function FleetPage() {
               key={vehicle.id}
               vehicle={vehicle}
               onEdit={() => setEditingVehicle(vehicle)}
-              onAssignDriver={() => setAssigningVehicle(vehicle)}
               onToggleStatus={() =>
                 statusMutation.mutate({ id: vehicle.id, status: STATUS_CYCLE[vehicle.status] })
               }
@@ -108,17 +99,6 @@ export function FleetPage() {
           onClose={() => setEditingVehicle(null)}
           onSubmit={async (input) => {
             await updateMutation.mutateAsync({ id: editingVehicle.id, input });
-          }}
-        />
-      )}
-
-      {assigningVehicle && (
-        <LinkDriverModal
-          unassignedVehicles={unassignedVehicles}
-          presetVehicle={assigningVehicle}
-          onClose={() => setAssigningVehicle(null)}
-          onSubmit={async (input) => {
-            await linkDriverMutation.mutateAsync(input);
           }}
         />
       )}

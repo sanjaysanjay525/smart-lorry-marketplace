@@ -5,7 +5,7 @@ let counter = 0;
 
 export async function registerUser(
   app: Express,
-  role: "customer" | "owner" | "driver",
+  role: "mill" | "owner",
   overrides: Partial<{ name: string; email: string; phone: string; password: string }> = {}
 ) {
   counter += 1;

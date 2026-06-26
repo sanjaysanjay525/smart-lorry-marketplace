@@ -35,7 +35,7 @@ export async function getVehicleLocations(vehicleIds: string[]): Promise<Map<str
   const rows = await prisma.$queryRaw<{ id: string; lat: number; lng: number }[]>`
     SELECT id, ST_Y(current_location::geometry) AS lat, ST_X(current_location::geometry) AS lng
     FROM vehicles
-    WHERE id IN (${Prisma.join(vehicleIds)}) AND current_location IS NOT NULL
+    WHERE id::text IN (${Prisma.join(vehicleIds)}) AND current_location IS NOT NULL
   `;
   return new Map(
     rows.map((r: { id: string; lat: number; lng: number }) => [r.id, { lat: r.lat, lng: r.lng }] as const)

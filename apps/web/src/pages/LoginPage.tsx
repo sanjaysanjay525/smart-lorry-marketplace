@@ -20,7 +20,7 @@ export function LoginPage() {
     setIsSubmitting(true);
     try {
       await login({ email, password });
-      navigate("/dashboard/vehicles");
+      navigate("/");
     } catch (err) {
       setError(extractErrorMessage(err));
     } finally {
@@ -29,7 +29,7 @@ export function LoginPage() {
   }
 
   return (
-    <AuthLayout title="Welcome back" subtitle="Log in to manage your fleet, drivers, and trips.">
+    <AuthLayout title="Welcome back" subtitle="Log in to manage your loads, lorries, and trips.">
       <form className="space-y-4" onSubmit={handleSubmit}>
         <TextField
           label="Email"

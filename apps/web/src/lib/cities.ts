@@ -1,0 +1,46 @@
+export interface City {
+  name: string;
+  lat: number;
+  lng: number;
+}
+
+export const TAMIL_NADU_CITIES: City[] = [
+  { name: "Coimbatore", lat: 11.0168, lng: 76.9558 },
+  { name: "Chennai", lat: 13.0827, lng: 80.2707 },
+  { name: "Madurai", lat: 9.9252, lng: 78.1198 },
+  { name: "Trichy", lat: 10.7905, lng: 78.7047 },
+  { name: "Salem", lat: 11.6643, lng: 78.1460 },
+  { name: "Tiruppur", lat: 11.1085, lng: 77.3411 },
+  { name: "Erode", lat: 11.3410, lng: 77.7172 },
+  { name: "Vellore", lat: 12.9165, lng: 79.1325 },
+  { name: "Tirunelveli", lat: 8.7139, lng: 77.7567 },
+  { name: "Thoothukudi", lat: 8.7642, lng: 78.1348 },
+  { name: "Ariyalur", lat: 11.1401, lng: 79.0783 },
+  { name: "Chengalpattu", lat: 12.6841, lng: 79.9836 },
+  { name: "Cuddalore", lat: 11.7480, lng: 79.7714 },
+  { name: "Dharmapuri", lat: 12.1211, lng: 78.1582 },
+  { name: "Dindigul", lat: 10.3673, lng: 77.9803 },
+  { name: "Kallakurichi", lat: 11.7383, lng: 78.9639 },
+  { name: "Kanchipuram", lat: 12.8342, lng: 79.7036 },
+  { name: "Kanyakumari", lat: 8.1883, lng: 77.4111 },
+  { name: "Karur", lat: 10.9601, lng: 78.0766 },
+  { name: "Krishnagiri", lat: 12.5266, lng: 78.2148 },
+  { name: "Mayiladuthurai", lat: 11.1018, lng: 79.6522 },
+  { name: "Nagapattinam", lat: 10.7656, lng: 79.8424 },
+  { name: "Namakkal", lat: 11.2189, lng: 78.1674 },
+  { name: "Nilgiris (Ooty)", lat: 11.4102, lng: 76.6950 },
+  { name: "Perambalur", lat: 11.2342, lng: 78.8787 },
+  { name: "Pudukkottai", lat: 10.3797, lng: 78.8203 },
+  { name: "Ramanathapuram", lat: 9.3639, lng: 78.8395 },
+  { name: "Ranipet", lat: 12.9272, lng: 79.3327 },
+  { name: "Sivaganga", lat: 9.8433, lng: 78.4809 },
+  { name: "Tenkasi", lat: 8.9593, lng: 77.3142 },
+  { name: "Thanjavur", lat: 10.7870, lng: 79.1378 },
+  { name: "Theni", lat: 10.0104, lng: 77.4777 },
+  { name: "Tirupathur", lat: 12.4934, lng: 78.5685 },
+  { name: "Tiruvallur", lat: 13.1394, lng: 79.9070 },
+  { name: "Tiruvannamalai", lat: 12.2253, lng: 79.0747 },
+  { name: "Tiruvarur", lat: 10.7661, lng: 79.6401 },
+  { name: "Villupuram", lat: 11.9401, lng: 79.4950 },
+  { name: "Virudhunagar", lat: 9.5872, lng: 77.9510 },
+];

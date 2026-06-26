@@ -16,7 +16,7 @@ export function VehicleFormModal({ initial, onClose, onSubmit }: VehicleFormModa
   const [capacityKg, setCapacityKg] = useState(initial ? String(initial.capacityKg) : "");
   const [registration, setRegistration] = useState(initial?.registration ?? "");
   const [baseRatePerKm, setBaseRatePerKm] = useState(initial ? String(initial.baseRatePerKm) : "");
-  const [baseRatePerHour, setBaseRatePerHour] = useState(initial ? String(initial.baseRatePerHour) : "");
+  const [ratePerTrip, setRatePerTrip] = useState(initial ? String(initial.ratePerTrip) : "");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -30,7 +30,7 @@ export function VehicleFormModal({ initial, onClose, onSubmit }: VehicleFormModa
         capacityKg: Number(capacityKg),
         registration: registration.toUpperCase(),
         baseRatePerKm: Number(baseRatePerKm),
-        baseRatePerHour: Number(baseRatePerHour),
+        ratePerTrip: Number(ratePerTrip),
       });
       onClose();
     } catch (err) {
@@ -89,14 +89,14 @@ export function VehicleFormModal({ initial, onClose, onSubmit }: VehicleFormModa
             onChange={(e) => setBaseRatePerKm(e.target.value)}
           />
           <TextField
-            label="Rate per hour (₹)"
-            name="baseRatePerHour"
+            label="Rate per trip (₹)"
+            name="ratePerTrip"
             type="number"
             min={0}
-            step="0.5"
+            step="100"
             required
-            value={baseRatePerHour}
-            onChange={(e) => setBaseRatePerHour(e.target.value)}
+            value={ratePerTrip}
+            onChange={(e) => setRatePerTrip(e.target.value)}
           />
         </div>
 

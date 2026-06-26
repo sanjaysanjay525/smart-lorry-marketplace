@@ -3,6 +3,7 @@ import type {
   VehicleDTO,
   CreateVehicleInput,
   UpdateVehicleInput,
+  AvailableVehiclesInput,
   Paginated,
 } from "@smart-lorry/shared";
 
@@ -31,4 +32,16 @@ export async function updateVehicleStatus(
 
 export async function deleteVehicle(id: string): Promise<void> {
   await api.delete(`/vehicles/${id}`);
+}
+
+export async function getVehicleById(id: string): Promise<VehicleDTO> {
+  const res = await api.get<VehicleDTO>(`/vehicles/${id}`);
+  return res.data;
+}
+
+export async function getAvailableVehicles(
+  params: Partial<AvailableVehiclesInput> = {}
+): Promise<Paginated<VehicleDTO>> {
+  const res = await api.get<Paginated<VehicleDTO>>("/vehicles/available", { params });
+  return res.data;
 }

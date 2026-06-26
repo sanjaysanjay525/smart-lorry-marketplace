@@ -1,13 +1,10 @@
-// Smart Lorry Marketplace — Prisma schema
-// Phase 1: auth, roles, vehicle/driver CRUD.
-// PostGIS geography columns are declared with Unsupported(...) because Prisma's
-// query engine doesn't model PostGIS types natively. Reads/writes against
-// `current_location` go through raw SQL helpers in src/utils/geo.ts using
-// ST_MakePoint / ST_AsGeoJSON, while every other vehicle field uses the
-// normal Prisma client.
+// Smart Lorry Marketplace — Prisma schema (Two-Role Rebuild)
+// Roles: mill (mill owner — posts loads) | owner (lorry owner — accepts loads)
+// No driver model. No pricing engine. SMS-based tracking.
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
@@ -16,10 +13,11 @@ datasource db {
   extensions = [postgis]
 }
 
+// ─────────────────────────────── Enums ───────────────────────────────
+
 enum UserRole {
-  customer
-  owner
-  driver
+  mill    // mill owner — posts loads, browses lorries, books trips
+  owner   // lorry owner — adds vehicles, sets rates, accepts loads
   admin
 
   @@map("user_role")
@@ -45,6 +43,26 @@ enum VehicleStatus {
   @@map("vehicle_status")
 }
 
+enum LoadStatus {
+  open
+  booked
+  in_transit
+  delivered
+  cancelled
+
+  @@map("load_status")
+}
+
+enum TripStatus {
+  pending     // lorry owner accepted load, waiting to pick up
+  picked_up   // goods loaded onto lorry
+  in_transit  // lorry moving
+  delivered   // goods delivered
+  cancelled
+
+  @@map("trip_status")
+}
+
 enum KycStatus {
   pending
   approved
@@ -52,6 +70,8 @@ enum KycStatus {
 
   @@map("kyc_status")
 }
+
+// ─────────────────────────────── Models ───────────────────────────────
 
 model User {
   id           String   @id @default(uuid()) @db.Uuid
@@ -61,27 +81,39 @@ model User {
   role         UserRole
   name         String
   avatarUrl    String?  @map("avatar_url")
+  banned       Boolean  @default(false)
+  preferredLang String?  @map("preferred_lang")
+  gstin        String?
+  businessName String?  @map("business_name")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  refreshTokens   RefreshToken[]
-  vehiclesOwned   Vehicle[]      @relation("OwnerVehicles")
-  driverProfile   Driver?        @relation("UserDriverProfile")
-  driversManaged  Driver[]       @relation("OwnerDrivers")
+  refreshTokens  RefreshToken[]
+  vehiclesOwned  Vehicle[]       @relation("OwnerVehicles")
+  postedLoads    Load[]          @relation("MillLoads")
+  ownerTrips     Trip[]          @relation("OwnerTrips")
+  millTrips      Trip[]          @relation("MillTrips")
+  givenRatings   Rating[]        @relation("GivenRatings")
+  receivedRatings Rating[]       @relation("ReceivedRatings")
+  kycDocuments   KycDocument[]   @relation("UserKyc")
+  kycReviewed    KycDocument[]   @relation("KycReviewer")
+  raisedDisputes Dispute[]       @relation("RaisedDisputes")
+  resolvedDisputes Dispute[]     @relation("ResolvedDisputes")
+  millPayments   Payment[]       @relation("MillPayments")
+  ownerPayments  Payment[]       @relation("OwnerPayments")
+  chatMessages   ChatMessage[]
 
   @@index([role])
   @@map("users")
 }
 
-// Refresh tokens are stored hashed and rotated on use so a stolen token
-// can be revoked without invalidating every session for a user.
 model RefreshToken {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  tokenHash String   @map("token_hash")
-  expiresAt DateTime @map("expires_at")
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
   revokedAt DateTime? @map("revoked_at")
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt DateTime  @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -96,8 +128,9 @@ model Vehicle {
   capacityKg      Decimal       @map("capacity_kg") @db.Decimal(10, 2)
   registration    String        @unique
   status          VehicleStatus @default(offline)
+  ratePerTrip     Decimal       @map("rate_per_trip") @db.Decimal(12, 2)
   baseRatePerKm   Decimal       @map("base_rate_per_km") @db.Decimal(10, 2)
-  baseRatePerHour Decimal       @map("base_rate_per_hour") @db.Decimal(10, 2)
+  kycApproved     Boolean       @default(false) @map("kyc_approved")
 
   // GEOGRAPHY(POINT, 4326) — see geo.ts for raw-SQL read/write helpers.
   currentLocation Unsupported("geography(Point,4326)")? @map("current_location")
@@ -105,47 +138,228 @@ model Vehicle {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  owner  User     @relation("OwnerVehicles", fields: [ownerId], references: [id], onDelete: Cascade)
-  driver Driver?
+  owner  User   @relation("OwnerVehicles", fields: [ownerId], references: [id], onDelete: Cascade)
+  trips  Trip[]
 
   @@index([ownerId])
   @@index([status])
   @@map("vehicles")
 }
 
-model Driver {
-  id              String    @id @default(uuid()) @db.Uuid
-  userId          String    @unique @map("user_id") @db.Uuid
-  ownerId         String    @map("owner_id") @db.Uuid
-  vehicleId       String?   @unique @map("vehicle_id") @db.Uuid
-  licenseNumber   String    @map("license_number")
-  licenseExpiry   DateTime  @map("license_expiry") @db.Date
-  yearsExperience Int       @default(0) @map("years_experience")
-  kycStatus       KycStatus @default(pending) @map("kyc_status")
-  ratingAvg       Decimal   @default(0) @map("rating_avg") @db.Decimal(3, 2)
+model Load {
+  id             String     @id @default(uuid()) @db.Uuid
+  millId         String     @map("mill_id") @db.Uuid
+  materialType   String     @map("material_type")
+  weightKg       Decimal    @map("weight_kg") @db.Decimal(10, 2)
+  vehicleTypeReq VehicleType @map("vehicle_type_req")
+  pickupAddress  String     @map("pickup_address")
+  pickupLat      Decimal    @map("pickup_lat") @db.Decimal(10, 7)
+  pickupLng      Decimal    @map("pickup_lng") @db.Decimal(10, 7)
+  dropAddress    String     @map("drop_address")
+  dropLat        Decimal    @map("drop_lat") @db.Decimal(10, 7)
+  dropLng        Decimal    @map("drop_lng") @db.Decimal(10, 7)
+  offeredRate    Decimal    @map("offered_rate") @db.Decimal(12, 2)
+  availableFrom  DateTime   @map("available_from")
+  availableUntil DateTime   @map("available_until")
+  status         LoadStatus @default(open)
+  notes          String?
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  mill  User  @relation("MillLoads", fields: [millId], references: [id])
+  trip  Trip?
 
-  user         User                @relation("UserDriverProfile", fields: [userId], references: [id], onDelete: Cascade)
-  owner        User                @relation("OwnerDrivers", fields: [ownerId], references: [id], onDelete: Cascade)
-  vehicle      Vehicle?            @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
-  availability DriverAvailability[]
+  @@index([status])
+  @@index([millId])
+  @@map("loads")
+}
+
+model Trip {
+  id            String     @id @default(uuid()) @db.Uuid
+  loadId        String     @unique @map("load_id") @db.Uuid
+  vehicleId     String     @map("vehicle_id") @db.Uuid
+  ownerId       String     @map("owner_id") @db.Uuid
+  millId        String     @map("mill_id") @db.Uuid
+  agreedRate    Decimal    @map("agreed_rate") @db.Decimal(12, 2)
+  status        TripStatus @default(pending)
+  pickedUpAt    DateTime?  @map("picked_up_at")
+  deliveredAt   DateTime?  @map("delivered_at")
+  cancelledAt   DateTime?  @map("cancelled_at")
+  cancelReason  String?    @map("cancel_reason")
+  lastSmsSentAt DateTime?  @map("last_sms_sent_at")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  load            Load             @relation(fields: [loadId], references: [id])
+  vehicle         Vehicle          @relation(fields: [vehicleId], references: [id])
+  owner           User             @relation("OwnerTrips", fields: [ownerId], references: [id])
+  mill            User             @relation("MillTrips",  fields: [millId],  references: [id])
+  ratings         Rating[]
+  smsLogs         SmsSendLog[]
+  disputes        Dispute[]
+  payment         Payment?
+  proofOfDelivery ProofOfDelivery?
+  invoice         Invoice?
+  chatMessages    ChatMessage[]
 
   @@index([ownerId])
-  @@index([kycStatus])
-  @@map("drivers")
+  @@index([millId])
+  @@index([status])
+  @@map("trips")
 }
 
-model DriverAvailability {
+model Rating {
   id        String   @id @default(uuid()) @db.Uuid
-  driverId  String   @map("driver_id") @db.Uuid
-  dayOfWeek Int      @map("day_of_week") // 0 = Sunday .. 6 = Saturday
-  startTime String   @map("start_time") // "HH:mm", stored as text to keep timezone handling explicit in app code
-  endTime   String   @map("end_time")
+  tripId    String   @map("trip_id") @db.Uuid
+  raterId   String   @map("rater_id") @db.Uuid
+  rateeId   String   @map("ratee_id") @db.Uuid
+  score     Int
+  comment   String?
+  createdAt DateTime @default(now()) @map("created_at")
 
-  driver Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  trip  Trip @relation(fields: [tripId], references: [id])
+  rater User @relation("GivenRatings",    fields: [raterId], references: [id])
+  ratee User @relation("ReceivedRatings", fields: [rateeId], references: [id])
 
-  @@unique([driverId, dayOfWeek, startTime])
-  @@map("driver_availability")
+  @@unique([tripId, raterId])
+  @@map("ratings")
 }
+
+model SmsSendLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  tripId      String   @map("trip_id") @db.Uuid
+  toPhone     String   @map("to_phone")
+  messageType String   @map("message_type")
+  messageBody String   @map("message_body")
+  sentAt      DateTime @default(now()) @map("sent_at")
+  success     Boolean
+  providerRef String?  @map("provider_ref")
+
+  trip Trip @relation(fields: [tripId], references: [id])
+
+  @@map("sms_send_log")
+}
+
+model KycDocument {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  docType    String    @map("doc_type")   // "rc_book" | "insurance" | "fitness_cert" | "aadhar"
+  docUrl     String    @map("doc_url")
+  status     KycStatus @default(pending)
+  reviewNote String?   @map("review_note")
+  reviewedBy String?   @map("reviewed_by") @db.Uuid
+  reviewedAt DateTime? @map("reviewed_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  user     User  @relation("UserKyc",     fields: [userId],     references: [id])
+  reviewer User? @relation("KycReviewer", fields: [reviewedBy], references: [id])
+
+  @@map("kyc_documents")
+}
+
+model Dispute {
+  id         String    @id @default(uuid()) @db.Uuid
+  tripId     String    @map("trip_id") @db.Uuid
+  raisedById String    @map("raised_by_id") @db.Uuid
+  reason     String
+  status     String    @default("open")
+  resolution String?
+  resolvedBy String?   @map("resolved_by") @db.Uuid
+  resolvedAt DateTime? @map("resolved_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  trip     Trip  @relation(fields: [tripId],     references: [id])
+  raisedBy User  @relation("RaisedDisputes",   fields: [raisedById], references: [id])
+  resolver User? @relation("ResolvedDisputes", fields: [resolvedBy], references: [id])
+
+  @@map("disputes")
+}
+
+enum PaymentStatus {
+  pending
+  authorized
+  paid
+  released
+  refunded
+  failed
+
+  @@map("payment_status")
+}
+
+model Payment {
+  id              String        @id @default(uuid()) @db.Uuid
+  tripId          String        @unique @map("trip_id") @db.Uuid
+  millId          String        @map("mill_id") @db.Uuid
+  ownerId         String        @map("owner_id") @db.Uuid
+  amount          Decimal       @db.Decimal(12, 2)
+  platformFee     Decimal       @map("platform_fee") @db.Decimal(12, 2)
+  ownerPayout     Decimal       @map("owner_payout") @db.Decimal(12, 2)
+  currency        String        @default("INR")
+  status          PaymentStatus @default(pending)
+  razorpayOrderId String?       @unique @map("razorpay_order_id")
+  razorpayPaymentId String?     @map("razorpay_payment_id")
+  razorpaySignature String?     @map("razorpay_signature")
+  paidAt          DateTime?     @map("paid_at")
+  releasedAt      DateTime?     @map("released_at")
+  refundedAt      DateTime?     @map("refunded_at")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  trip    Trip @relation(fields: [tripId], references: [id])
+  mill    User @relation("MillPayments",  fields: [millId],  references: [id])
+  owner   User @relation("OwnerPayments", fields: [ownerId], references: [id])
+
+  @@map("payments")
+}
+
+model ProofOfDelivery {
+  id              String   @id @default(uuid()) @db.Uuid
+  tripId          String   @unique @map("trip_id") @db.Uuid
+  photoUrls       String[] @map("photo_urls")
+  signatureUrl    String?  @map("signature_url")
+  receiverName    String   @map("receiver_name")
+  receiverPhone   String   @map("receiver_phone")
+  deliveredAt     DateTime @map("delivered_at")
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  trip Trip @relation(fields: [tripId], references: [id])
+  @@map("proof_of_delivery")
+}
+
+model Invoice {
+  id              String   @id @default(uuid()) @db.Uuid
+  tripId          String   @unique @map("trip_id") @db.Uuid
+  invoiceNo       String   @unique @map("invoice_no")
+  millGstin       String?  @map("mill_gstin")
+  ownerGstin      String?  @map("owner_gstin")
+  baseAmount      Decimal  @map("base_amount") @db.Decimal(12, 2)
+  cgstRate        Decimal  @default(9.00) @map("cgst_rate") @db.Decimal(5, 2)
+  sgstRate        Decimal  @default(9.00) @map("sgst_rate") @db.Decimal(5, 2)
+  cgstAmount      Decimal  @map("cgst_amount") @db.Decimal(12, 2)
+  sgstAmount      Decimal  @map("sgst_amount") @db.Decimal(12, 2)
+  totalAmount     Decimal  @map("total_amount") @db.Decimal(12, 2)
+  pdfUrl          String?  @map("pdf_url")
+  issuedAt        DateTime @map("issued_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  trip Trip @relation(fields: [tripId], references: [id])
+  @@map("invoices")
+}
+
+model ChatMessage {
+  id         String   @id @default(uuid()) @db.Uuid
+  tripId     String   @map("trip_id") @db.Uuid
+  senderId   String   @map("sender_id") @db.Uuid
+  senderRole UserRole @map("sender_role")
+  body       String   @db.Text
+  readAt     DateTime? @map("read_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  trip   Trip @relation(fields: [tripId], references: [id])
+  sender User @relation(fields: [senderId], references: [id])
+
+  @@index([tripId, createdAt])
+  @@map("chat_messages")
+}
+
