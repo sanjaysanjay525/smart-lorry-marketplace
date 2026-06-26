@@ -1,0 +1,122 @@
+.forecast {
+  background: white;
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.forecast h2 {
+  text-align: center;
+  color: var(--primary-blue);
+  margin-bottom: 2rem;
+  font-size: 1.8rem;
+}
+
+.forecast-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1.5rem;
+}
+
+.forecast-day {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.3s ease;
+}
+
+.forecast-day:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.forecast-day h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.forecast-icon {
+  width: 70px;
+  height: 70px;
+}
+
+.forecast-weather {
+  text-transform: capitalize;
+  font-size: 0.9rem;
+}
+
+.forecast-details {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.forecast-details .temp {
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.forecast-details .rain {
+  font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.5rem;
+}
+
+.hourly-forecast {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  width: 100%;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.hourly-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.hourly-item .time {
+  font-weight: 600;
+}
+
+.hourly-icon {
+  width: 30px;
+  height: 30px;
+}
+
+.hourly-item .hourly-temp {
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .forecast {
+    padding: 1rem;
+  }
+
+  .forecast-container {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .forecast-day {
+    padding: 1rem;
+  }
+
+  .hourly-forecast {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
