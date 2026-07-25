@@ -1,0 +1,75 @@
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: slm-postgres
+    environment:
+      POSTGRES_USER: slm
+      POSTGRES_PASSWORD: slm_dev_password
+      POSTGRES_DB: smart_lorry
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U slm -d smart_lorry"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: slm-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    container_name: slm-api
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: postgresql://slm:slm_dev_password@postgres:5432/smart_lorry
+      REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: dev_access_secret_change_in_prod
+      JWT_REFRESH_SECRET: dev_refresh_secret_change_in_prod
+      ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      AI_MATCHING_URL: http://ai-matching:8000
+      CORS_ORIGIN: http://localhost:5173
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./services/api:/app/services/api
+      - ./packages/shared:/app/packages/shared
+      - /app/services/api/node_modules
+    command: npm run dev --workspace=@slm/api
+
+  ai-matching:
+    build:
+      context: services/ai-matching
+      dockerfile: Dockerfile
+    container_name: slm-ai-matching
+    ports:
+      - "8000:8000"
+    environment:
+      ENVIRONMENT: development
+    volumes:
+      - ./services/ai-matching:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  postgres_data:
+  redis_data:

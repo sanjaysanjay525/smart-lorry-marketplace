@@ -1,0 +1,25 @@
+{
+  "name": "smart-lorry-marketplace",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "services/api",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=@slm/api & npm run dev --workspace=@slm/web",
+    "dev:api": "npm run dev --workspace=@slm/api",
+    "dev:web": "npm run dev --workspace=@slm/web",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "db:migrate": "npm run db:migrate --workspace=@slm/api",
+    "db:generate": "npm run db:generate --workspace=@slm/api",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
